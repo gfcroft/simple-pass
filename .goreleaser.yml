@@ -1,0 +1,46 @@
+# TODO really we should be splitting the integration tests across various build arch. at the github actions runner level
+# AFTER builds, rather than just once on this runner
+before:
+  hooks:
+    - go mod download
+    - go mod tidy
+    - go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+    - go run github.com/go-critic/go-critic/cmd/gocritic@latest check -enableAll -disable commentFormatting,#opinionated ./...
+    - go run github.com/google/osv-scanner/cmd/osv-scanner@latest -r .
+    - go test -race ./...
+    - make full-build-and-test
+
+# see: https://goreleaser.com/customization/builds
+builds:
+  # no intention to support windows at this time
+  - goos:
+      - darwin
+      - linux
+    
+# see: https://goreleaser.com/customization/homebrew
+brews:
+  - repository:
+      owner: gfcroft
+      name: homebrew-tap
+      branch: master
+      token: "{{ .Env.GITHUB_TOKEN }}"
+      # whether to create a pr against the branch instead of pushing to it
+      pull_request:
+        enabled: false
+    commit_author:
+      name: gfcroft-automated
+      email: gfcroft@outlook.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    folder: Formula
+    caveats: |
+      After install (or update) see
+
+      $ simple-pass -h
+    homepage: "https://github.com/gfcroft/simple-pass"
+    description: |
+      Simple password management via a simple cli tool
+    license: Apache 2.0
+    skip_upload: false
+    dependencies:
+      - name: git
+      - name: npm

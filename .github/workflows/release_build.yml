@@ -1,0 +1,58 @@
+name: Release Go project
+
+on:
+  push:
+    tags:
+      - "v*.*.*" 
+    branches:
+      - master
+
+
+env:
+  GO_VER: 1.20
+
+jobs:
+  build:
+    name: GoReleaser build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go ${{env.GO_VER}}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{env.GO_VER}}
+        id: go
+
+      # - name: install make
+      #   run: |
+      #     apt update -y 
+      #     apt install -y make 
+
+        # TODO somehow have go build pick this up and insert this into
+        # binary itself, then have go runtime pick this out to supply to cobra cli 'version' 
+        # functionality
+      - name: ensure VERSION correct
+        run: |
+          set -e 
+          export set_ver=$(cat cmd/VERSION )
+          export curr_ver=${{ env.GITHUB_REF }}
+          curr_ver=${curr_ver##*/}
+          if [ "$ser_ver" -ne "$curr_ver" ]]; then
+            echo "set version: $set_ver != tag: $curr_ver"
+            exit 1
+          fi
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4.3.0
+        with:
+          version: latest
+          args: release --rm-dist --verbose
+        env:
+          # TODO currently this is a token with only a year's validity (till aug 2024)
+          # could do with a fine-grained token that doesn't expire (not currently available seemingly)
+          GITHUB_TOKEN: ${{ secrets.GH_TAP_TOKEN }}
