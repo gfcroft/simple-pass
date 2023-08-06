@@ -26,3 +26,6 @@ or build from source using the makefile
 ```bash
     make build
 ```
+## Current Status
+
+simple-pass is currently in beta and its api/commands are subject to change 
